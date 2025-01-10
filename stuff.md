@@ -28,11 +28,10 @@
     - `valgrind` or `ltrace`: Find memory leaks.
     - `ulimit`: Restrict memory usage.
     - Move the heavy process to another server.
-
 `free -m`: view memory usage.
 `top`: view the memory usage of each process in real time.
 `vmstat`: monitor system performance.
-1. ##### **Swap: extra space on disk used when RAM is full**
+3. ##### **Swap: extra space on disk used when RAM is full**
 - The system moves less-used memory pages from RAM to Swap so that more memory is available for important tasks.
 - Swap space: 
   - partition: Is an independent section of the hard disk used solely for swapping; no other files can reside there. 
@@ -47,25 +46,22 @@
   - **Increased Latency**: Processes needing swapped-out pages must wait for the disk I/O to load them back into RAM.
   - **I/O bottleneck**: Heavy swapping increase disk usage, potentially causing bottlenecks.
   - **Disk Wear**: Frequent swapping can cause wear on SSDs due to excessive writes.
-
-free -m: Swap usage.
-
-swapon -s: lists Swap status.
-
+`free -m`: Swap usage.
+`swapon -s`: lists Swap status.
 - increase Swap: Create a Swap file or **partition** and activate it with swapon.
-1. ##### **Why Kernel memory is different from user memory?** 
+4. ##### **Why Kernel memory is different from user memory?** 
 - Kernel memory:
   - Cannot be swapped to disk(not pageable) for performance and stability reasons.
   - Managed differently from user memory(:lazy allocation, only when actual access). The kernel allocates all required memory when a process starts.
 - Why this matters: Errors in kernel memory (like illegal access) cause major issues, such as system crashes (kernel oops).
 - How to check?
-  - cat /proc/meminfo: see kernel memory usage.
-- Linux uses Slab Allocator to manage kernel memory efficiently.
+  - `cat /proc/meminfo`: see kernel memory usage.
+- Linux uses **Slab Allocator** to manage kernel memory efficiently.
 - Zones of Kernel memory
   - ZONE\_DMA: For devices that need direct memory access.
   - ZONE\_NORMAL: The main memory used by the kernel.
   - ZONE\_HIGHMEM: Extra memory not directly used by the kernel.
-1. ##### **Slab Layer: like a free list**
+5. ##### **Slab Layer: like a free list**
 - Function: 
   - A slab layer divide different objects into groups called caches. There is one cache per type. 
   - If an object is needed, the Allocator fetches it from a slab instead of allocating new memory.
@@ -75,9 +71,8 @@ swapon -s: lists Swap status.
 1) When the kernel requires a new data structure, the kernel will return a pointer to an already allocated, but unused data structure from a partial slab(or an empty slab if no partial slab exists). 
 1) If neither partial slab nor empty slab exists, use allocate interface to allocate a new slab. 
 1) The free interface is called only when available memory grows low and system is attempting to free memory. 
-
-slabtop: see kernel slab usage.
-1. ##### **Virtual Memory**
+`slabtop`: see kernel slab usage.
+6. ##### **Virtual Memory**
 - A memory management technique that provides processes with the illusion of having a large, contiguous address space. It maps virtual addresses to physical memory using a page table.
 - Advantages: 
   - Efficient Memory Use: Allows overcommitting memory.
