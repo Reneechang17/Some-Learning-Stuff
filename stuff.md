@@ -68,9 +68,9 @@
 - Structure: Cache → Muti Slabs → Muti Objects 
 - Status of slabs: 1. Full 2. Partial 3. Empty 
 - Process: 
-1) When the kernel requires a new data structure, the kernel will return a pointer to an already allocated, but unused data structure from a partial slab(or an empty slab if no partial slab exists). 
-1) If neither partial slab nor empty slab exists, use allocate interface to allocate a new slab. 
-1) The free interface is called only when available memory grows low and system is attempting to free memory. 
+a. When the kernel requires a new data structure, the kernel will return a pointer to an already allocated, but unused data structure from a partial slab(or an empty slab if no partial slab exists). 
+b. If neither partial slab nor empty slab exists, use allocate interface to allocate a new slab. 
+c. The free interface is called only when available memory grows low and system is attempting to free memory. 
 `slabtop`: see kernel slab usage.
 6. ##### **Virtual Memory**
 - A memory management technique that provides processes with the illusion of having a large, contiguous address space. It maps virtual addresses to physical memory using a page table.
