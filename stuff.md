@@ -68,9 +68,9 @@
 - Structure: Cache → Muti Slabs → Muti Objects 
 - Status of slabs: 1. Full 2. Partial 3. Empty 
 - Process: 
-a. When the kernel requires a new data structure, the kernel will return a pointer to an already allocated, but unused data structure from a partial slab(or an empty slab if no partial slab exists). 
-b. If neither partial slab nor empty slab exists, use allocate interface to allocate a new slab. 
-c. The free interface is called only when available memory grows low and system is attempting to free memory. 
+1) When the kernel requires a new data structure, the kernel will return a pointer to an already allocated, but unused data structure from a partial slab(or an empty slab if no partial slab exists). 
+2) If neither partial slab nor empty slab exists, use allocate interface to allocate a new slab. 
+3) The free interface is called only when available memory grows low and system is attempting to free memory. 
 `slabtop`: see kernel slab usage.
 6. ##### **Virtual Memory**
 - A memory management technique that provides processes with the illusion of having a large, contiguous address space. It maps virtual addresses to physical memory using a page table.
@@ -79,37 +79,37 @@ c. The free interface is called only when available memory grows low and system 
   - Isolation: Protects processes from accessing each other's memory.
   - Convenience: Simplifies programming with a uniform memory model.
 - Follow-Up Topics
-- Page Tables: How virtual addresses are translated to physical addresses.
-- TLB (Translation Lookaside Buffer): A cache for speeding up address translation.
-- Page Faults: Occur when a process accesses a page not in memory.
-1. #### **Process Related**
+  - Page Tables: How virtual addresses are translated to physical addresses.
+  - TLB (Translation Lookaside Buffer): A cache for speeding up address translation.
+  - Page Faults: Occur when a process accesses a page not in memory.
+2. #### **Process Related**
 1. ##### **CPU load is very high but CPU usage is quit low, why?**
 - Probably large amount of processes are under uninterruptible sleep status (waiting for I/O) which makes the process queue very long.
 - Since Linux system average load measures the number of the process in the status of both Running and Waiting for Run(included D status). But the number of processes in Running status is quite small. 
 - Solution: 
-  - iotop: see which process has a large I/O. 
+  - `iotop`: see which process has a large I/O. 
   - Increase bottleneck disk device performance. 
-  - vmstat: see the swap memory usage, if swap uses too much I/O resources, we should increase memory capacity or check if memory leak. 
-1. ##### **Init Process**
+  - `vmstat`: see the swap memory usage, if swap uses too much I/O resources, we should **increase memory capacity** or **check if memory leak**. 
+2. ##### **Init Process**
 - The init process is the first process started by the Linux kernel when the system boots up. Its PID is always 1. It initializes the system based on the runlevel.
-- Where to find it? The behavior is defined in /etc/inittab.
+- Where to find it? The behavior is defined in `/etc/inittab`.
 - It’s the ancestor of all processes. If it fails, the system becomes unstable.
-1. ##### **Create new Process**
-1) A parent process calls the fork() system call. **fork()** creates a new process by duplicating the parent’s memory space(copy on write).
-1) The parent continues running, and the child either executes the same code or calls exec() to load a new program.
-1) The parent process can use wait() or waitpid() to check the child status.
-1) When a child exits, it enters a zombie state until the parent retrieves its status.
+3. ##### **Create new Process**
+1) A parent process calls the `fork() system call`. **fork()** creates a new process by duplicating the parent’s memory space(copy on write).
+2) The parent continues running, and the child either executes the same code or `calls exec()` to load a new program.
+3) The parent process can use `wait()` or `waitpid()` to check the child status.
+4) When a child exits, it enters a zombie state until the parent retrieves its status.
 - Key terms:
   - **Copy on Write**: Instead of copy the parent’s entire memory, the child only gets reference. Actual copy happens when the child modifies the memory.
   - **Zombie state**: A process that has finished executing but hasn’t been cleaned up by its parent.
-1. ##### **Process Status**
+4. ##### **Process Status**
 - RUNNING (R): Actively running or ready to run.
 - INTERRUPTIBLE (S): Sleeping, but can wake up when needed.
 - UNINTERRUPTIBLE (D): Sleeping, but cannot be killed (e.g., waiting for I/O).
   - This is why some processes in the D state can only cleared by a reboot or wait for I/O to respond.
 - STOPPED (T): Suspended, usually by a signal like SIGSTOP.
 - ZOMBIE (Z): Finished execution, but the parent hasn’t cleaned it up.
-1. ##### **PCB(Process control block)/process descriptor**
+5. ##### **PCB(Process control block)/process descriptor**
 - The PCB is a data structure in the OS that stores all information about process:
   - PID: Process ID.
   - Status: Current state (e.g., running, sleeping).
@@ -117,93 +117,89 @@ c. The free interface is called only when available memory grows low and system 
   - Memory Limits: Information about memory allocation, including page tables.
   - Open Files List: Files currently in use by the process.
   - Parent/Child Relationships: Links to the parent and child processes.
-1. ##### **how does fork() work internally?? (use for create new process)**
-- fork() is implemented using the clone() system call, which internally calls do\_fork().
-- A new task\_struct (process descriptor) is created for the child process.
+6. ##### **how does fork() work internally?? (use for create new process)**
+- `fork()` is implemented using the `clone() system call`, which internally `calls do\_fork()`.
+- A new `task\_struct` (process descriptor) is created for the child process.
 - The child’s initially set to **UNINTERRUPTIBLE**, so it doesn’t run immediately.
 - Resources like file descriptors are shared between parent and child.
-- The child then assigned a new PID using alloc\_pid().
+- The child then assigned a new PID using `alloc\_pid()`.
 - Once ready, the child process starts running.
 - **Difference between fork() and vfork(): copy page table or not**
-  - vfork() is optimized for when the child immediately calls exec(). It doesn’t copy the parent’s page table, and the parent is blocked until the child finishes.
-1. ##### **Parent exit before child**
-- The OS need to reparent the child process to another process; otherwise the child process will forever remain in a zombie state after it call exit(). 
+  - `vfork()` is optimized for when the child immediately calls exec(). It **doesn’t copy the parent’s page table**, and the parent is blocked until the child finishes.
+7. ##### **Parent exit before child**
+- The OS need to reparent the child process to another process; otherwise the child process will forever remain in a zombie state after it `call exit()`. 
 - Solution: 
   - Reparent a task’s children when calling exit() to another process in the current thread group . 
   - If failed, reparent its children to init process. 
-1. ##### **Process life cycle**
-- Generate: call fork() → call syscall clone() → copy on write 
-- If need to run a different program: call syscall exec() 
-- Termination: call syscall exit() 
-- Suspend process until one child process exit: call syscall wait4() 
-1. ##### **Linux Process Scheduling**
+8. ##### **Process life cycle**
+- Generate: `call fork()` → `call syscall clone()` → copy on write 
+- If need to run a different program: `call syscall exec()` 
+- Termination: `call syscall exit() `
+- Suspend process until one child process exit: `call syscall wait4()` 
+9. ##### **Linux Process Scheduling**
 - CFS (Completely Fair Scheduler):
-  - Linux uses the CFS to schedule processes. It picks the process with the smallest vruntime (virtual runtime) to run next.
-  - use red-black tree to keep track of runnable processes.
+  - Linux uses the CFS to schedule processes. It **picks the process with the smallest vruntime (virtual runtime) to run next.**
+  - use **red-black tree** to keep track of runnable processes.
 - Real-time scheduling policies:
   - FIFO: First-In-First-Out, runs until the task blocks or yields.
   - Round-Robin: Each task gets a fixed time slice before switching.
-1. ##### **Interprocess Communication (IPC)**
+10. ##### **Interprocess Communication (IPC)**
    - Shared Memory: Fastest method, but requires synchronization.
-   - Signals: Notifications sent by the kernel or other processes (e.g., SIGKILL).
+   - Signals: Notifications sent by the kernel or other processes (e.g., `SIGKILL`).
    - Pipes: Data channels between processes.
    - Message Queues: processes can send and receive messages.
 1. ##### **pstree**
-- The pstree command shows processes in a tree structure, displaying parent-child relationships.
-
-pstree: display all processes as a tree.
-
-pstree -p: include process IDs.
-
-pstree -u: include usernames of the processes.
-1. #### **Thread Related线程相关**
+- The `pstree` command shows processes in a tree structure, displaying parent-child relationships.
+`pstree`: display all processes as a tree.
+`pstree -p`: include process IDs.
+`pstree -u`: include usernames of the processes.
+3. #### **Thread Related线程相关**
 1. ##### **To the Linux kernel, there is no concept of a thread**
 - A thread is just a type of process that shares certain resources (like memory) with other processes.
-1. ##### **Create a thread**
-- Threads are created similarly to processes using the fork() system call. However, the clone() system call is used with specific flags to indicate which resources are shared.
+2. ##### **Create a thread**
+- Threads are created similarly to processes using the `fork() system call`. However, the `clone() system call` is used with specific flags to indicate which resources are shared.
 - **Thread:** clone(CLONE\_VM|CLONE\_FS|CLONE\_FILES|CLONE\_SIGHAND, 0)
   - Shares memory, file system, open files, and signal handlers with the parent.
 - **fork():** clone(SIGCHLD, 0)
   - A new process is created without sharing resources.
 - **vfork():** clone(CLONE\_VFORK | CLONE\_VM | SIGCHLD, 0)
   - The child shares memory with the parent temporarily, and the parent is blocked until the child calls exec() or exit().
-1. ##### **Kernel Threads**
+3. ##### **Kernel Threads**
 - Which run entirely in kernel space, they do not interact with user space.
-- Unlike normal processes, kernel threads do not have an address space (their mm pointer is NULL).
+- Unlike normal processes, **kernel threads do not have an address space** (their `mm pointer` is NULL).
 - All kernel threads are forked from the special kernel process kthreadd, which has PID 2.
   - kthreadd is not created by init (PID 1); it is spawned by the kernel itself during boot. Its parent PID (PPID) is 0.
-- ps -ef: view kernel threads.
-1. #### **Disk I/O Related**
+- `ps -ef`: view kernel threads.
+4. #### **Disk I/O Related**
 1. ##### **Troubleshoot on process’s disk I/O is very slow**
-1. Use pidstat -d -p PID to see the I/O delay of the process.
-1. Use top or vmstat to check the wa (I/O wait) value, which shows how much CPU time is spent waiting for I/O.
-1. Use iostat -x to identify block devices with high wait times.
-1. Use iotop to identify processes consuming large I/O resources.
-1. Use lsof -p PID to find which files the process is accessing.
-
-If Swap usage is frequent, use vmstat to check Swap activity and consider free memory.
-1. ##### **Troubleshoot on NFS(Network File System)Log into NFS server**
-1. Log into NFS server.
-1. Use iostat -x to check which disk device has high wait times.
-1. Use lsof +D ${Dir\_Name} to see which processes are using the directory.
-1. Use pidstat -d -p PID to find how long the process waits for I/O.
-1. Use iotop to identify processes consuming large I/O resources.
-1. Use lsof -p PID to check which directories or files are accessed by the process.
-1. ##### **Troubleshoot on Bad Disk Performance**
+1) Use `pidstat -d -p PID` to see the I/O delay of the process.
+2) Use `top` or `vmstat` to check the wa (I/O wait) value, which shows how much CPU time is spent waiting for I/O.
+3) Use `iostat -x` to identify block devices with high wait times.
+4) Use `iotop` to identify processes consuming large I/O resources.
+5) Use `lsof -p PID` to find which files the process is accessing.
+  - If Swap usage is frequent, use vmstat to check Swap activity and consider free memory.
+2. ##### **Troubleshoot on NFS(Network File System)Log into NFS server**
+1) Log into NFS server.
+2) Use `iostat -x` to check which disk device has high wait times.
+3) Use `lsof +D ${Dir\_Name}` to see which processes are using the directory.
+4) Use `pidstat -d -p PID` to find how long the process waits for I/O.
+5) Use `iotop` to identify processes consuming large I/O resources.
+6) Use `lsof -p PID` to check which directories or files are accessed by the process.
+3. ##### **Troubleshoot on Bad Disk Performance**
 1. **Check if the disk is full:**
-   1) Use df -lh to see disk usage.
-   1) Use du to find directories or files consuming large amounts of space.
-1. **Find which process is accessing the disk:**
-   1) Use iotop to identify heavy I/O processes.
-   1) Use lsof +D ${DirPath} to find processes accessing a directory.
-1. **Check physical block device health:**
-   1) Use iostat -x to check I/O stats.
+   1) Use `df -lh` to see disk usage.
+   2) Use `du` to find directories or files consuming large amounts of space.
+2. **Find which process is accessing the disk:**
+   1) Use `iotop` to identify heavy I/O processes.
+   1) Use `lsof +D ${DirPath}` to find processes accessing a directory.
+3. **Check physical block device health:**
+   1) Use `iostat -x` to check I/O stats.
       1. Bad device: Low r/s, w/s, rsec/s, or wsec/s.
-      1. Use fsck to fix errors on the block device.
-   1) Normal device: If high r\_await or w\_await is seen, check memory usage with vmstat.
+      1. Use `fsck` to fix errors on the block device.
+   2) Normal device: If high r\_await or w\_await is seen, check memory usage with `vmstat`.
       1. Frequent si/so indicates Swap usage occupying I/O resources.
-   1) Optimize I/O: Reduce frequency by using batch processing in code.
-1. ##### **Page Cache**
+   3) Optimize I/O: Reduce frequency by using batch processing in code.
+4. ##### **Page Cache**
 - **minimizes disk I/O by storing data in physical memory for faster access**.
 - Mechanism:
   - When a process reads or writes data:
@@ -214,27 +210,27 @@ If Swap usage is frequent, use vmstat to check Swap activity and consider free m
     - Dirty pages are periodically flushed by flusher threads.
   - Cache eviction:
     - two-list strategy: active list (hot data) and inactive list (cold data), managed using the Least Recently Used (LRU) algorithm.
-- Tools: Use vmstat to monitor page cache behavior.
-1. ##### **Buffer缓冲区 and Cache缓存**
+- Tools: Use `vmstat` to monitor page cache behavior.
+5. ##### **Buffer缓冲区 and Cache缓存**
 - Cache: The page cache stores file data in memory for faster access.
 - Buffer: Buffers store metadata that points to actual file blocks in the page cache.
   - When data is requested, the kernel checks the buffer metadata first to locate the file in the page cache.
-- Tools: Use free -m to see cache and buffer usage.
-1. ##### **RAID(Redundant Array od Independent Disks)**
+- Tools: Use `free -m` to see cache and buffer usage.
+6. ##### **RAID(Redundant Array od Independent Disks)**
 - Disk virtualization technology that combines multiple physical disks into one virtual storage (RAID array).
 - RAID 1: Mirroring data across multiple disks to provide redundancy.
-1. #### **File System Related**
+5. #### **File System Related**
 1. ##### **Workflow**
-- User-space: The write() system call is invoked by the user program →
-- VFS: translates write() into sys\_write() and interacts with the filesystem →
+- User-space: The `write() system call` is invoked by the user program →
+- VFS: translates `write()` into `sys\_write()` and interacts with the filesystem →
 - The specific filesystem (e.g., ext4) handles the write operation →
 - The data is written to the underlying physical disk.
-1. ##### **Key Term**
+2. ##### **Key Term**
 - Superblock: Contains the metadata of filesystem(size, type, status).
 - Bitmap: Tracks with blocks are allocated or free.
 - Inode: Contains metadata about a file(permissions, size, timestamps).
 - Datablock: Store the actual data of a file.
-1. ##### **Virtual Filesystem(VFS)**
+3. ##### **Virtual Filesystem(VFS)**
 - VFS provides an abstraction layer that allows multiple filesystem types to coexist. It defines the following objects:
   - Superblock: Represents a mounted filesystem.
   - Inode: Represents a file or directory.
@@ -250,57 +246,57 @@ If Swap usage is frequent, use vmstat to check Swap activity and consider free m
     - An LRU list of unused and negative dentries (for cache eviction).
     - Hash table to quickly locate corresponding dentries based on file paths.
 - File Object 
-  - Create: call open()
-  - Destroy: call close()
+  - Create: `call open()`
+  - Destroy: `call close()`
 - File Lookup Flow: File Object → Dentry Object → Inode Object → Data Block
-1. ##### **kernel structures for describing filesystems**
-- file\_system\_type: Describes the capabilities and behavior of a filesystem.
-- vfsmount: Stores information about the current mount point and its relationship with other mount points.(当前挂载点和其他挂载点的info）
-1. ##### **Block Devices**
+4. ##### **kernel structures for describing filesystems**
+- `file\_system\_type`: Describes the capabilities and behavior of a filesystem.
+- `vfsmount`: Stores information about the current mount point and its relationship with other mount points.(当前挂载点和其他挂载点的info）
+5. ##### **Block Devices**
 - Sector: The smallest addressable unit on a block device.
 - Block: The kernel operates on disk in terms of blocks, which are multiples of the sector size(and size need to power of 2, larger than the page size).
 - Buffers: Blocks that are read or pending write operations are temporarily stored in memory buffers.
 - I/O Scheduler: Manages request queues for block devices to reduce seek times and improve throughput.
   - Merging: Combines adjacent I/O requests into one.
   - Sorting: Reorders requests to minimize disk head movement.
-1. ##### **Softlink vs Hardlink**
+6. ##### **Softlink vs Hardlink**
 - Softlink (Symbolic Link):
   - A pointer to another file. If the original file is deleted, the softlink becomes invalid.
   - Implemented by creating a new inode pointing to the original file’s path.
 - Hardlink:
   - A direct reference to the original file’s inode. Even if the original file is deleted, the hardlink retains the file’s data.
-1. ##### **Disk Partition**
-1. Use lsblk to list block devices.
-1. Use fdisk -l to display current partitions.
-1. Create a new partition:
-   1) Run fdisk {device name} → Press n → Configure (start and end sectors).
-1. Format the partition: mkfs.{filesystem name} {partition name}.
-1. Create a directory.
-1. Mount the partition: mount {partition name} {directory name}. 挂载分区
-1. #### **Kernel Related**
+7. ##### **Disk Partition**
+1) Use `lsblk` to list block devices.
+2) Use `fdisk -l` to display current partitions.
+3) Create a new partition:
+   - Run `fdisk {device name}` → Press `n` → Configure (start and end sectors).
+4) Format the partition: `mkfs.{filesystem name} {partition name}.`
+5) Create a directory.
+6) Mount the partition: `mount {partition name} {directory name}.` 挂载分区
+6. #### **Kernel Related**
 1. ##### **System Call?**
 - What is system call?
-  - A system call is the only legal way for user-space programs to interact with the kernel. It acts as an interface, ensuring security and stability by letting the kernel manage access to hardware and resources. 
+  - A system call is the only legal way for user-space programs to **interact with the kernel**. It acts as an interface, ensuring **security and stability** by letting the kernel manage access to hardware and resources. 
   - Return value: long type, 0 indicate success, Negative indicate error.
-    - can use perror() to translate into human readable msg.
+    - can use `perror()` to translate into human readable msg.
 - How system call work?
-  - The program places the system call number in the EAX register and its arguments in other registers.
-  - It executes the int $0x80 instruction, triggering a software interrupt.
-  - The processor switches to kernel mode, saving user registers and fetching the kernel stack.
+  - The program places the system call number in the **EAX register** and its arguments in other registers.
+  - It executes the `int $0x80` instruction, triggering a software interrupt.
+  - The processor switches to **kernel mode**, saving user registers and fetching the kernel stack.
   - The kernel executes the system call and verifies parameters.
-  - Once finished, it switches back to user mode and restores user registers using the iret instruction.
+  - Once finished, it switches back to **user mode** and restores user registers using the `iret` instruction.
 - Why can’t we directly call kernel like user function?
-  - Kernel code uses a separate stack and memory segment. Direct jumps won't work because they don’t handle privilege level changes.（不能handle权限改变的问题）
-1. ##### **Real Mode and Protected Mode**
+  - Kernel code uses a **separate stack and memory segment**. Direct jumps won't work because **they don’t handle privilege level changes.**
+2. ##### **Real Mode and Protected Mode**
 - Real Mode:
   - Used during system boot, which can only execute 16-bit instructions and access up to 1MB of memory.
 - Protected Mode:
   - Allows access to more memory and 32/64-bit instructions. The switch to protected mode happens by loading the **Global Descriptor Table (GDT)** into the **gdtr** register and setting a control bit in the **CR0** register.
-1. ##### **Interrupts**
-- Interrupts allow hardware to send signals to the processor, prompting it to stop its current task and execute a specific routine called an interrupt handler.
+3. ##### **Interrupts**
+- Interrupts **allow hardware to send signals to the processor, prompting it to stop its current task and execute a specific routine called an interrupt handler.**
 - Types:
   - Hardware Interrupt: Triggered by hardware devices (e.g., keyboard).
-  - Software Interrupt: Triggered by a program using a special instruction (e.g., **int $0x80** for system calls).
+  - Software Interrupt: Triggered by a program using a special instruction (e.g., `int $0x80` for system calls).
 - Interrupt Process
   - Top Half: 
     - Executes immediately after the interrupt occurs.
@@ -308,79 +304,79 @@ If Swap usage is frequent, use vmstat to check Swap activity and consider free m
     - Implemented by the interrupt handler in the device driver.
   - Bottom Half:
     - Defers less urgent work to be executed later.
-    - Implemented by softirqs, tasklets, or work queues.
+    - Implemented by **softirqs, tasklets, or work queues.**
 - Bottom Half Implementation
   - Softirqs软中断
     - Reserved for timing-critical tasks, mostly used by networking and block device subsystems.
-    - Runs in kernel context and cannot sleep.
+    - **Runs in kernel context and cannot sleep.**
     - Softirqs have numerical priorities: lower numbers execute first.
   - Tasklets任务小分支
     - Built on top of softirqs but simpler to use.
     - Only one tasklet of a given type can run at a time.
-    - Suitable for tasks that are not highly threaded.
+    - Suitable for tasks that are **not highly threaded.**
   - Work queues
-    - Runs in process context, so it can sleep.
-    - Used for work that requires sleeping or accessing user-space.
+    - Runs in process context, so **it can sleep.**
+    - Used for work that **requires sleeping or accessing user-space.**
   - **ksoftirqd** and Softirq Load Handling
     - **When many softirqs are triggered**, the kernel wakes up a kernel thread family called ksoftirqd to process them.
-    - Each processor has its own ksoftirqd/n thread (e.g., ksoftirqd/0 for CPU 0).
+    - Each processor has its own **ksoftirqd/n thread** (e.g., ksoftirqd/0 for CPU 0).
     - These threads run at the lowest priority (nice value = 19).
 - Interrupt Handler
   - a kernel function that executes in response to an interrupt.
   - Characteristics:
-    - Runs in interrupt context, so it cannot sleep.
-    - Shares the kernel stack with the process it interrupts, so blocking it would also block the interrupted process.
+    - **Runs in interrupt context, so it cannot sleep.**
+    - **Shares the kernel stack with the process it interrupts**, so blocking it would also block the interrupted process.
   - Interrupt Stack:
     - Historically, interrupt handlers shared the same stack as the interrupted process.
     - Modern kernels use a dedicated stack for interrupt handlers.
-1. ##### **Exception Handling**
+4. ##### **Exception Handling**
 - Exceptions occur when the CPU detects an error during instruction execution (e.g., divide by zero or page fault).
 - Types:
   - Hardware Interrupts: Asynchronous, triggered by external devices.
   - Exceptions: Synchronous, triggered during execution.
-1. ##### **Interrupt Descriptor Table(IDT)**
+5. ##### **Interrupt Descriptor Table(IDT)**
 - The IDT maps interrupts and exceptions to their respective handlers.
 - It is accessed through the **idtr** register, which stores the IDT’s base address and length.
 - Triggering the IDT: Hardware interrupts, Software interrupts, Exceptions.
-1. ##### **Kernel synchronization methods**
+6. ##### **Kernel synchronization methods**
 1) Atomic Operations原子操作
    - Atomic operations ensure thread-safe manipulation of shared data without locks.
    - Operate on integers (atomic\_t ensures no compiler optimizations).
    - Operate on individual bits.
-1) **Spin Lock自旋锁**
+2) **Spin Lock自旋锁**
    - A lock that causes threads to spin until the lock becomes available.
-   - Non-recursive: If a thread tries to acquire a lock it already holds, it causes a **deadlock.**
-   - Interrupts must be disabled locally to prevent interrupt handlers from acquiring the same lock, leading to deadlock.
-   - Best for short critical sections (less than two context-switch durations).
-1) **Semaphores 允许多个线程同时拥有锁**
+   - **Non-recursive**: If a thread tries to acquire a lock it already holds, it causes a **deadlock.**
+   - **Interrupts must be disabled locally** to prevent interrupt handlers from acquiring the same lock, leading to deadlock.
+   - Best for **short critical sections** (less than two context-switch durations).
+3) **Semaphores 允许多个线程同时拥有锁**
    - Allows multiple threads to hold the lock.
    - Blocks the thread and places it in a waiting queue if the lock is not available.
-   - Cannot be used in interrupt handlers, as they can sleep.
-1) **Mutex**
-   - Similar to semaphores, but only allows one thread to hold the lock.
-   - Best for exclusive access to resources.
+   - **Cannot be used in interrupt handlers**, as they can sleep.
+4) **Mutex**
+   - Similar to semaphores, but **only allows one thread to hold the lock.**
+   - Best for **exclusive access** to resources.
 - Some Situations
   - Short lock hold time: Spin lock.
   - Long lock hold time: Semaphore/Mutex.
   - Interrupt context: Spin lock.
   - Requires sleep while waiting: Semaphore/Mutex.
-1. ##### **Differences Between Kernel and User Processes**
+7. ##### **Differences Between Kernel and User Processes**
 - Memory Space
   - User processes have isolated memory spaces.
   - Kernel threads **share the same memory space without private address spaces**.
 - Function
   - Kernel threads perform background tasks.
 - Ancestor
-  - User processes are forked from init (PID 1).
-  - Kernel threads are forked from kthreadd (PID 2).
-1. ##### **Panic and Oops**
+  - User processes are forked from `init` (PID 1).
+  - Kernel threads are forked from `kthreadd` (PID 2).
+8. ##### **Panic and Oops**
 - Kernel Oops
   - A recoverable error where the kernel kills the offending process and prints an "oops" message.
   - May leave the kernel in an unstable state.
 - Kernel Panic
   - A fatal error where the kernel cannot recover.
   - Dumps kernel memory to disk and requires a manual or automatic reboot.
-1. ##### **CPU Cache**
+9. ##### **CPU Cache**
 - Levels
   - CPU caches are organized hierarchically: L1, L2, L3, and sometimes L4.
   - Higher levels (e.g., L3, L4) have larger capacity but slower speed.
@@ -395,73 +391,71 @@ If Swap usage is frequent, use vmstat to check Swap activity and consider free m
   - Write-through: Writes data to both cache and memory simultaneously.
   - Write-back: Writes data to cache first and updates memory later.
   - LRU: Evicts the least recently used cache entry when space is needed.
-1. #### **Networking**
+7. #### **Networking**
 1. ##### **ICMP Protocol互联网控制消息协议**
-- ICMP (Internet Control Message Protocol) is typically used for diagnostic or control purposes, such as ping or traceroute. It can also to do DDoS attacks.
+- ICMP (Internet Control Message Protocol) is typically used for **diagnostic or control purposes**, such as ping or traceroute. It can also to **do DDoS attacks.**
 - How it works:
-  - ICMP is connectionless; it does not rely on TCP or UDP, no need for device.
+  - **ICMP is connectionless**; it does not rely on TCP or UDP, no need for device.
   - There is no need to establish a connection before sending ICMP messages, and they are not directed to specific ports.
-1. ##### **Checking Connectivity**
+2. ##### **Checking Connectivity**
 - Ping
   - Sends ICMP Echo Requests to a host and waits for Echo Replies.
   - Two key metrics:
-    - Reachability可达性: Whether the host responds.
-    - Latency延迟: Time taken for responses.
+    - Reachability: Whether the host responds.
+    - Latency: Time taken for responses.
   - Example:
     - ping -c 5 -s 1500 [www.google.com](http://www.google.com)
     - Sends 5 ICMP requests with a packet size of 1500 bytes.
-- Telnet: Tests the accessibility of a specific port on a remote server using TCP.
+- **Telnet: Tests the accessibility of a specific port on a remote server using TCP.**
   - Example: telnet 192.168.1.1 80
-- Traceroute
-  - Displays the route packets take from the source to the destination.
+- **Traceroute**
+  - **Displays the route packets take from the source to the destination.**
   - Measures the transit delays of packets.
   - Example: traceroute www.google.com
-- route -n: list the routing table on the current server 
-1. ##### **Network Card Receiving Packets**
+- `route -n`: list the routing table on the current server 
+3. ##### **Network Card Receiving Packets**
 - When a network card receives packets, it generates an interrupt.
 - The kernel responds and runs the network card's interrupt handler:
   - Acknowledges the hardware.
   - Copies packets to main memory.
   - Removes packets from the card's buffer.
 - If delays occur, the buffer may overflow, causing packet drops.
-1. ##### **OSI Seven Layer**
+4. ##### **OSI Seven Layer**
 1) Application Layer: High level api like HTTP & Telnet.
-1) Presentation Layer: Translates between network service and application.
-1) Session Layer: Manages connections between computers.
-1) Transport Layer: Method to transfer data from a client to server(TCP & UDP).
-1) Network Layer: Determine the routing of packets(e.g., IP).
-1) Data Link Layer: Manages data frames between devices.
-1) Physical Layer: Transmits raw bitstreams over physical media.
-1. ##### **TCP/IP Four Layers**
+2) Presentation Layer: Translates between network service and application.
+3) Session Layer: Manages connections between computers.
+4) Transport Layer: Method to transfer data from a client to server(TCP & UDP).
+5) Network Layer: Determine the routing of packets(e.g., IP).
+6) Data Link Layer: Manages data frames between devices.
+7) Physical Layer: Transmits raw bitstreams over physical media.
+5. ##### **TCP/IP Four Layers**
 1) Application Layer: Telnet, FTP, email, HTTP 
-1) Transport Layer: TCP, UDP 
-1) Network Layer: IP, ICMP 
-1) Data Link Layer: device driver 
-1. ##### **HandShakes**
-- **Connection Establishment链接建立(三次握手)**:
+2) Transport Layer: TCP, UDP 
+3) Network Layer: IP, ICMP 
+4) Data Link Layer: device driver 
+6. ##### **HandShakes**
+- **Connection Establishment(三次握手)**:
 1) The client sends a connection request to the server (SYN).
-1) The server acknowledges and sends back a response (SYN-ACK).
-1) The client sends an acknowledgment to complete the handshake (ACK).
-- Data Transmission数据传输: Data packets are sent from the client to the server, and acknowledgments are sent back.
+2) The server acknowledges and sends back a response (SYN-ACK).
+3) The client sends an acknowledgment to complete the handshake (ACK).
+- Data Transmission: Data packets are sent from the client to the server, and acknowledgments are sent back.
 - **Connection Termination链接终止(四次挥手):**
 1) The client sends a disconnect request (FIN).
-1) The server acknowledges the request (ACK) and sends its own disconnect request (FIN).
-1) The client acknowledges the server's request (ACK), closing the connection.
-1. ##### **Type a URL in a Browser**
+2) The server acknowledges the request (ACK) and sends its own disconnect request (FIN).
+3) The client acknowledges the server's request (ACK), closing the connection.
+7. ##### **Type a URL in a Browser**
 - **Step 1: Resolving the URL to an IP Address**
-1) First searches for the URL in its local DNS cache to see if the IP address is already known.
-1) If not in the local cache, the browser sends a DNS query to the configured DNS server (by ISP or manually configured).
-1) The DNS server forwards the query to a root DNS server, which provides a pointer to the appropriate TLD (Top-Level Domain) server.
+1) First searches for the URL in its *local DNS cache* to see if the IP address is already known.
+2) If not in the local cache, the browser sends a *DNS query* to the configured DNS server (by ISP or manually configured).
+3) The DNS server forwards the query to a root DNS server, which provides a pointer to the appropriate TLD (Top-Level Domain) server.
    Example: www.example.com, the root server points to the .com TLD server.
-1) The TLD server responds with the address of the authoritative DNS server for the domain.
-1) The authoritative DNS server provides the IP address of the requested URL.
-1) The resolved IP address is cached locally for future use.
+4) The TLD server responds with the address of the *authoritative DNS server* for the domain.
+5) The authoritative DNS server *provides the IP address of the requested URL.*
+6) The *resolved IP address is cached locally* for future use.
 - **Step2: Connecting to the IP Address**
-1) The browser initiates a TCP connection with the server using the resolved IP address. This is done using the three-way handshake:
-
-   =>Client sends SYN req/Server responds with SYN-ACK/Client ack with ACK.
-
-1) The browser generates an HTTP **GET** request to retrieve the content.
+1) The browser initiates a **TCP connection** with the server using the resolved IP address. This is done using the three-way handshake:
+   - => Client sends SYN req/Server responds with SYN-ACK/Client ack with ACK.
+2) The browser generates an HTTP **GET** request to retrieve the content.
 - **Step3: Packet Creation and Transmission**
   - HTTP Layer: The HTTP GET request is constructed by the browser.
   - TCP Layer: The TCP layer wraps the HTTP request in a TCP segment by adding a TCP header.
@@ -471,37 +465,37 @@ If Swap usage is frequent, use vmstat to check Swap activity and consider free m
   - Physical Transmission: The frames are transmitted as raw bits over the physical medium (e.g., Ethernet, Wi-Fi).
 - **Step4: Receiving Response**
 1) The server receives the GET request, processes it, and prepares a response (e.g., HTML content).
-1) The response follows the reverse path: Encapsulated at the server’s HTTP → TCP → IP → Data Link layer → sent back to the client over the network.
-1) The browser receives the response, processes the HTML, CSS, and JavaScript, and renders the webpage for the user.
+2) The response follows the reverse path: Encapsulated at the server’s HTTP → TCP → IP → Data Link layer → sent back to the client over the network.
+3) The browser receives the response, processes the HTML, CSS, and JavaScript, and renders the webpage for the user.
 - **Wrap up**
 1) DNS Resolution (Local Cache → DNS Server → Root → TLD → Authoritative Server).
-1) TCP Three-Way Handshake.
-1) HTTP Request and Response.
-1) Packet Encapsulation (HTTP → TCP → IP → Data Link → Physical).
-1. ##### **Routing Table**
-- route -n: Displays the routing table.
+2) TCP Three-Way Handshake.
+3) HTTP Request and Response.
+4) Packet Encapsulation (HTTP → TCP → IP → Data Link → Physical).
+8. ##### **Routing Table**
+- `route -n`: Displays the routing table.
 - Key Terms:
   - Destination: Target IP or network.
   - Gateway: Next hop or router IP.
   - Genmask: Subnet mask.
   - Flags: Route type (e.g., H: host, G: gateway).
   - Iface: Network interface name.
-1. ##### **DNS**
+9. ##### **DNS**
 - Resolves domain names to IP addresses.
 - Uses UDP for queries.
 - The process involves querying local caches, resolver servers, root servers, TLD servers, and authoritative name servers.
-1. ##### **TCP vs UDP vs ICMP**
+10. ##### **TCP vs UDP vs ICMP**
 - TCP: Reliable, connection-based protocol for applications.
 - UDP: Lightweight, connectionless protocol.
 - ICMP: Control protocol, not for data transport.
-1. #### **Container Related**
+8. #### **Container Related**
 1. ##### **Namespaces**
 - Use to isolate processes and enforce resource segregation.
 - Key Example: **PID (Process ID) Namespace**
   - Assigns a unique set of PIDs within a namespace.
   - The first process in a namespace has PID 1, independent of the parent namespace.
   - A child process can also have its own PID namespace, where it is assigned PID 1 in that namespace while retaining its PID in the parent namespace.
-1. ##### **Control Groups(Cgroups)**
+2. ##### **Control Groups(Cgroups)**
 - A Linux kernel feature to limit, account for, and isolate resource usage (CPU, memory, disk I/O, etc.) of a collection of processes.
 - Widely used in containerization and Kubernetes environments.
 - Key Features:
@@ -509,125 +503,114 @@ If Swap usage is frequent, use vmstat to check Swap activity and consider free m
   - Prioritization: Allocates more or fewer resources to a cgroup compared to others.
   - Accounting: Tracks and reports resource usage.
   - Control: Allows pausing, stopping, or restarting all processes in a cgroup.
-1. ##### **Virtualization**
+3. ##### **Virtualization**
 - Structure: Guest Application → Guest OS → Hypervisor/VMM → Host OS → Hardware Resources.
 - CPU Virtualization:
   - Trap: Instructions requiring kernel mode are intercepted by the VMM.
   - Emulate: Instructions are executed as functions in the VMM memory space.
 - Memory Virtualization:
-  - Shadow Page Table: Combines the guest and host page tables into one, mapping guest virtual addresses (GVA) to host physical addresses (HPA).
-
-**影子页表（Shadow Page Table）**：将客户和主机页表合并，将客户虚拟地址（GVA）映射到主机物理地址（HPA)
-
-- Modifications by the guest OS to its page table are intercepted by the VMM and reflected in the shadow page table.
-
-客户端操作系统对页表的修改会被VMM截获，并反映到影子页表中。
-
-- Separate shadow page tables are used to distinguish user and kernel space.
-
-使用独立的影子页表来区分用户空间和内核空间。
-1. ##### **Container vs VM**
-   ![](Aspose.Words.20346a1e-d22e-4e33-9c6c-401c69bc0df1.001.png)
-1. ##### **Container Network Interface(CNI)**
+  - Shadow Page Table: Combines the guest and host page tables into one, mapping guest virtual addresses (GVA) to host physical addresses (HPA). **影子页表（Shadow Page Table）**：将客户和主机页表合并，将客户虚拟地址（GVA）映射到主机物理地址（HPA)
+  - Modifications by the guest OS to its page table are intercepted by the VMM and reflected in the shadow page table. 客户端操作系统对页表的修改会被VMM截获，并反映到影子页表中。
+  - Separate shadow page tables are used to distinguish user and kernel space.使用独立的影子页表来区分用户空间和内核空间。
+4. ##### **Container Network Interface(CNI)**
 - A minimal standard for connecting containers to a network.
 - Cilium and Flannel are common CNI implementations in Kubernetes.
-1. #### **Troubleshooting**
+9. #### **Troubleshooting**
 1. ##### **A Batched Task Failed on Some Machine (批量任务在某些机器上失败)**
 - Disk of the Remote Machine is Full (远程机器磁盘已满):
-  - Use df -lh to check disk usage on the remote machine.
+  - Use `df -lh` to check disk usage on the remote machine.
 - Disk Failure (磁盘故障):
-  - Use fsck to check and repair the Linux file system.
+  - Use `fsck` to check and repair the Linux file system.
 - Insufficient Memory Resources (内存资源不足):
-  - Use dmesg | egrep -i 'killed process' to check for OOM (Out of Memory) killer logs.
-  - Use free, vmstat, or top to check current memory usage.
+  - Use `dmesg | egrep -i 'killed process'` to check for OOM (Out of Memory) killer logs.
+  - Use `free`, `vmstat`, or `top` to check current memory usage.
 - Missing Dependencies or Files (缺失依赖或文件):
   - Run the script on the remote machine to see the output for missing dependencies.
 - Resource Accessibility Issue (资源无法访问):
-  - Use ping or telnet to test network connectivity to the required resource from the remote server.
-1. ##### **Slow Database Operation (数据库操作缓慢)**
+  - Use `ping` or `telnet` to test network connectivity to the required resource from the remote server.
+2. ##### **Slow Database Operation (数据库操作缓慢)**
 - CPU Saturation (CPU 使用率过高):
-  - Use top to check CPU usage for this process or others.
+  - Use `top` to check CPU usage for this process or others.
 - Insufficient Memory for Index (内存不足以加载索引):
-  - Use vmstat or free to check total and available memory.
+  - Use `vmstat` or `free` to check total and available memory.
 - Slow or Failing Block Device (块设备速度慢或故障):
-  - Use iostat or iotop to gather I/O information.
-  - Use vmstat to check swap space usage.
+  - Use `iostat` or `iotop` to gather I/O information.
+  - Use `vmstat` to check swap space usage.
 - Database Internal Operations (数据库内部操作占用资源):
   - Check database logs for activities like:
     - Migration: Data chunks being moved to other parts.
     - Synchronization: Data distribution in a distributed database.
-1. ##### **Abnormally Low CPU Idle Time but Low Scheduler Saturation (CPU 空闲时间低但调度器饱和度低)**
+3. ##### **Abnormally Low CPU Idle Time but Low Scheduler Saturation (CPU 空闲时间低但调度器饱和度低)**
 - Too Many Interrupts (过多的中断):
-  - Use vmstat to check system.in for interrupt counts.
-  - Use top or pidstat -p PID to analyze processes causing high interrupt rates.
-  - Use strace to trace the system calls made by a specific process.
-1. ##### **Fork Bomb (子进程无限生成问题)**
+  - Use `vmstat` to check system.in for interrupt counts.
+  - Use `top` or `pidstat -p PID` to analyze processes causing high interrupt rates.
+  - Use `strace` to trace the system calls made by a specific process.
+4. ##### **Fork Bomb (子进程无限生成问题)**
 - Set a Process Limit (设置最大进程数限制):
-  - Modify /etc/security/limits.conf or use ulimit -u ${num} to limit the max processes a single user can own.
+  - Modify `/etc/security/limits.conf` or use `ulimit -u ${num}` to limit the max processes a single user can own.
 - Kill Processes by Session (按会话杀死进程):
-  - Get the PID of the parent process: pstree -sp ${PID}
-  - Print the session ID of the process: ps --pid ${PID} -o sid
-  - Kill all processes in the session: kill $(ps -ax --sid <session\_id> -o pid=)
-1. #### **Questions**
+  - Get the PID of the parent process: `pstree -sp ${PID}`
+  - Print the session ID of the process: `ps --pid ${PID} -o sid`
+  - Kill all processes in the session: `kill $(ps -ax --sid <session\_id> -o pid=)`
+10. #### **Questions**
 1. ##### **How Interrupt Works** 
-1) A system call triggers an interrupt (e.g., $0x80 for x86 architecture).
-1) The interrupt switches the CPU from user mode to kernel mode.
-1) The Interrupt Descriptor Table (IDT) maps the interrupt to a specific function in the kernel.
-1) The kernel verifies parameters, executes the system call, and restores the process state.
-1) Finally, the CPU switches back to user mode using the iret instruction.
-1. ##### **What Happens When Typing ls -l \*.c in Bash (执行命令的过程)**
+1) A system call triggers an **interrupt** (e.g., $0x80 for x86 architecture).
+2) The interrupt switches the CPU from user mode to **kernel mode**.
+3) The **Interrupt Descriptor Table (IDT)** maps the interrupt to a specific function in the kernel.
+4) The kernel verifies parameters, executes the system call, and restores the process state.
+5) Finally, the **CPU** switches back to user mode using the `iret` instruction.
+2. ##### **What Happens When Typing ls -l \*.c in Bash (执行命令的过程)**
 1) The keyboard input is parsed by the shell into tokens (ls, -l, \*.c).
-1) Shell expands wildcards (e.g., \*.c) into actual file names.
-1) Shell checks if the command is a built-in or an executable.
-1) For external commands, the shell forks a new process to execute it via execve().
-1) The ls command accesses file information using inode and writes results to STDOUT.
-1. ##### **What Happens When Pressing Power On (启动 Linux 系统的流程)**
+2) Shell expands wildcards (e.g., \*.c) into actual file names.
+3) Shell checks if the command is a `built-in` or an executable.
+4) For external commands, the shell forks a new process to execute it via `execve()`.
+5) The ls command accesses file information using `inode` and writes results to STDOUT.
+3. ##### **What Happens When Pressing Power On (启动 Linux 系统的流程)**
 1) BIOS performs POST and loads the MBR.
-1) MBR loads the boot loader (e.g., GRUB).
-1) GRUB loads the kernel and initramfs into memory.
-1) The kernel initializes hardware, mounts the root file system, and executes /sbin/init.
-1) Init starts system services based on the current runlevel.
-1. ##### **Machine Crash Due to Lack of Memory** 
-1) Check OOM Killer logs with dmesg.
-1) Disable OOM panic by modifying /proc/sys/vm/panic\_on\_oom.
-1) Stop unnecessary processes using kill -s SIGSTOP.
-1) Check for memory leaks with valgrind or monitor with top.
-1) Use scripts to log memory usage for future analysis.
-1. ##### **High I/O or I/O Bottleneck** 
-1) Check CPU time spent waiting for I/O using top or vmstat.
-1) Identify heavily used disks with iostat.
-1) Use iotop to find processes consuming I/O resources.
-1) Use lsof -p PID to check frequently accessed files.
-1. ##### **Explain vmstat Output (解释 vmstat 输出内容)**
-- proc.r: Processes waiting for CPU. 等待 CPU 的进程数
-- proc.b: Processes in uninterruptible sleep. 不可中断的睡眠进程数
+2) MBR loads the boot loader (e.g., GRUB).
+3) The kernel initializes hardware, mounts the root file system, and executes /sbin/init.
+4) `Init` starts system services based on the current runlevel.
+4. ##### **Machine Crash Due to Lack of Memory** 
+1) Check OOM Killer logs with `dmesg`.
+2) Disable OOM panic by modifying `/proc/sys/vm/panic\_on\_oom`.
+3) Stop unnecessary processes using `kill -s SIGSTOP`.
+4) Check for memory leaks with `valgrind` or monitor with `top`.
+5) Use scripts to log memory usage for future analysis.
+5. ##### **High I/O or I/O Bottleneck** 
+1) Check CPU time spent waiting for I/O using `top` or `vmstat`.
+2) Identify heavily used disks with `iostat`.
+3) Use `iotop` to find processes consuming I/O resources.
+4) Use `lsof -p PID` to check frequently accessed files.
+6. ##### **Explain vmstat Output (解释 vmstat 输出内容)**
+- `proc.r`: Processes waiting for CPU. 等待 CPU 的进程数
+- `proc.b`: Processes in uninterruptible sleep. 不可中断的睡眠进程数
 - memory.swpd: Swap space used. 已使用的交换空间
-- cpu.wa: CPU time waiting for I/O. CPU 等待 I/O 的时间
-1. ##### **How Does GDB Work? (GDB 的工作原理)**
-- Ptrace Syscall: GDB attaches to a process using ptrace, enabling control over its execution.
-- Breakpoints: GDB replaces instructions with INT3 to trigger a trap.
-1. ##### **ELF Format (ELF 文件格式)**
+- `cpu.wa`: CPU time waiting for I/O. CPU 等待 I/O 的时间
+7. ##### **How Does GDB Work? (GDB 的工作原理)**
+- `Ptrace Syscall`: GDB attaches to a process using ptrace, enabling control over its execution.
+- `Breakpoints`: GDB replaces instructions with INT3 to trigger a trap.
+8. ##### **ELF Format (ELF 文件格式)**
 - Sections: Used at link time (e.g., symbol tables).
 - Segments: Used at runtime (e.g., code and data segments).
-1. ##### **What Happens When Pressing Ctrl+C?** 
+9. ##### **What Happens When Pressing Ctrl+C?** 
 1) Triggers a hardware interrupt.
-1) Kernel translates the signal to SIGINT.
-1) SIGINT is stored in the process PCB and handled by the kernel.
-1. ##### **Context Switch (上下文切换过程)**
+2) Kernel translates the signal to SIGINT.
+3) SIGINT is stored in the process PCB and handled by the kernel.
+10. ##### **Context Switch (上下文切换过程)**
 1) Save the current process state in its PCB.
-1) Load the new process state from its PCB.
-1. ##### **Syscall and Context Switch Relationship (系统调用与上下文切换的关系)**
-- ` `Not all syscalls cause a context switch unless waiting for unavailable resources.
-1. ##### **Exception Handling Process (异常处理过程)**
+2) Load the new process state from its PCB.
+11. ##### **Syscall and Context Switch Relationship (系统调用与上下文切换的关系)**
+-  Not all syscalls cause a context switch unless waiting for unavailable resources.
+12. ##### **Exception Handling Process (异常处理过程)**
 1) Save register values.
-1) Execute the exception handler in kernel mode.
-1) Return to user mode.
-1. ##### **ls Stuck (ls 卡住的解决办法)**
-1) Use strace ls to debug stuck system calls.
-1) Check mounted directories with mount -l.
-1. ##### **Sending Signals to a Process (向进程发送信号)**
+2) Execute the exception handler in kernel mode.
+3) Return to user mode.
+13. ##### **ls Stuck (ls 卡住的解决办法)**
+1) Use `strace ls` to debug stuck system calls.
+2) Check mounted directories with `mount -l`.
+14. ##### **Sending Signals to a Process (向进程发送信号)**
 1) The signal is stored in the process PCB.
-1) The kernel invokes the corresponding signal handler.
+2) The kernel invokes the corresponding signal handler.
 
 ### **《面经》**
 1. #### **vmstat能看出什么？**
