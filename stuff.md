@@ -6,7 +6,7 @@
 - Address Translation: Logical Address → Linear Address → Physical Address 
   - Segment Unit: convert Logical Address → Linear Address (through Global Descriptor Table)
   - Memory Management Unit: convert Linear Address → Physical Address (through TLB & Page Table) 
-  - pmap PID: view memory mappings of a process.
+  - `pmap PID`: view memory mappings of a process.
 2. ##### **OOM(Out of Memory)**
 - when system runs out of memory and can't allocate more for programs. (for all available included disk swap space)
 - When this happens, the OOM Killer is triggered to stop low-priority processes and free up memory.
@@ -14,26 +14,24 @@
   - `dmesg`: see if the OOM Killer was triggered.
   - `/proc/$PID/oom\_score`: see which processes are more likely to be killed. 
 - **How to deal with high memory usage?**
-- **Short-term fixes:**
-  - Increase the **nice value** to decrease the priority, so the memory request will less, if speed is not important.
-  - `kill -SIGSTOP PID`: Pause unimportant processes.
-  - `kill -l`: see the number of SIGSTOP
-  - `kill -num PID`: kernel swap those memory to disk and free the memory for import task.
-- **What is nice value**? controls a process’s priority.
-  - A higher nice value means lower priority and shorter CPU time, while a lower nice value means higher priority.
-  - How to adjust it?	
-    - Use the `nice` command when starting a process.
-    - `renice`: change the priority of an existing process.
-- **Long-term fixes:**
-  - valgrind or ltrace**:** Find memory leaks.
-  - ulimit**:** Restrict memory usage.
-  - Move the heavy process to another server.
+  - **Short-term fixes:**
+    - Increase the **nice value** to decrease the priority, so the memory request will less, if speed is not important.
+    - `kill -SIGSTOP PID`: Pause unimportant processes.
+    - `kill -l`: see the number of SIGSTOP
+    - `kill -num PID`: kernel swap those memory to disk and free the memory for import task.
+  - **What is nice value**? controls a process’s priority.
+    - A higher nice value means lower priority and shorter CPU time, while a lower nice value means higher priority.
+    - How to adjust it?	
+      - Use the `nice` command when starting a process.
+      - `renice`: change the priority of an existing process.
+  - **Long-term fixes:**
+    - `valgrind` or `ltrace`: Find memory leaks.
+    - `ulimit`: Restrict memory usage.
+    - Move the heavy process to another server.
 
-free -m: view memory usage.
-
-top: view the memory usage of each process in real time.
-
-vmstat: monitor system performance.
+`free -m`: view memory usage.
+`top`: view the memory usage of each process in real time.
+`vmstat`: monitor system performance.
 1. ##### **Swap: extra space on disk used when RAM is full**
 - The system moves less-used memory pages from RAM to Swap so that more memory is available for important tasks.
 - Swap space: 
