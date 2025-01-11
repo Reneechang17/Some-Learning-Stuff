@@ -614,67 +614,60 @@
 
 ### **《面经》**
 1. #### **vmstat能看出什么？**
-1. **CPU performance**
+- 1. **CPU performance**
 1) 高 cpu.us：用户态进程消耗大量 CPU，可能是计算密集型任务。
-1) 高 cpu.sy：内核态消耗过多，可能是 I/O 操作或系统调用过多。
-1) 低 cpu.id：CPU 空闲时间几乎为零，说明 CPU 饱和。
-1) 高cpu.wa：CPU 大量等待 I/O，可能是磁盘或网络 I/O 瓶颈。
-1) 高 cpu.st：虚拟化环境下，CPU 被其他虚拟机抢占。
-1. **Memory used**
-1) 1. 高 swpd：系统正在频繁使用交换空间，可能是内存不足。
-1) 2. 低 free：空闲内存不足，说明物理内存已耗尽。
-1) 3. 高 buff, cache：缓冲或缓存太多，正常现象，但需要确保应用进程有足够的可用内存。
-1) 4. 高 memory.inact：大量内存处于非活动状态，可能是内存泄漏。
-1. **I/O bottleneck**
+2) 高 cpu.sy：内核态消耗过多，可能是 I/O 操作或系统调用过多。
+3) 低 cpu.id：CPU 空闲时间几乎为零，说明 CPU 饱和。
+4) **高 cpu.wa：CPU 大量等待 I/O，可能是磁盘或网络 I/O 瓶颈。**
+5) 高 cpu.st：虚拟化环境下，CPU 被其他虚拟机抢占。
+- 2. **Memory used**
+1) 高 swpd：系统正在频繁使用交换空间，可能是内存不足。
+2) 低 free：空闲内存不足，说明物理内存已耗尽。
+3) 高 buff, cache：缓冲或缓存太多，正常现象，但需要确保应用进程有足够的可用内存。
+4) **高 memory.inact：大量内存处于非活动状态，可能是内存泄漏。**
+- 3. **I/O bottleneck**
 1) 高 io.bi 或 io.bo：磁盘 I/O 密集操作（如文件读取或写入）。
-1) 高 cpu.wa：CPU 等待磁盘 I/O 过多，可能是磁盘性能问题或 I/O 操作过多。
-1. **Interrupt or context swap**
+2) **高 cpu.wa：CPU 等待磁盘 I/O 过多，可能是磁盘性能问题或 I/O 操作过多。**
+- 4. **Interrupt or context swap**
 1) 高 system.in：系统中断频繁，可能是硬件中断风暴（如网络或磁盘中断）。
-1) 高 system.cs：上下文切换频繁，可能是进程数量过多或短生命周期任务（如频繁创建和销毁线程）。
-1. **Process related** 
-1) 高 proc.r：运行队列长度大，说明 CPU 忙碌。
-1) 高 proc.b：大量进程处于不可中断睡眠状态（D 状态），通常是 I/O 资源瓶颈。
-1. **Swap**
+2) 高 system.cs：上下文切换频繁，可能是进程数量过多或短生命周期任务（如频繁创建和销毁线程）。
+- 5. **Process related** 
+1) 高 `proc.r`：运行队列长度大，说明 CPU 忙碌。
+2) 高 `proc.b`：大量进程处于不可中断睡眠状态（D 状态），通常是 I/O 资源瓶颈。
+- 6. **Swap**
 1) 高 swap.si 和 swap.so：系统频繁交换内存，可能是物理内存不足或应用程序内存使用不当。
-1) swap 使用频繁时，会导致性能下降，因磁盘 I/O 比内存操作慢得多。
-1. **System I/O**
+2) swap 使用频繁时，会导致性能下降，因磁盘 I/O 比内存操作慢得多。
+- 7. **System I/O**
 1) 高 io.bi：从块设备读取数据频繁，可能是文件读取过多。
-1) 高 io.bo：写入块设备数据频繁，可能是日志记录或磁盘缓存写回过多。
-1. #### **数据库query变慢？**
-   **Scenario**: A customer reports that their query execution time has increased from seconds to over a minute. The task is to identify the root cause and provide solutions.
-
+2) 高 io.bo：写入块设备数据频繁，可能是日志记录或磁盘缓存写回过多。
+2. #### **数据库query变慢？**
+**Scenario**: A customer reports that their query execution time has increased from seconds to over a minute. The task is to identify the root cause and provide solutions.
 1) **Clarify the problem**
-
-   Gather more details from the customer:
-
-   What query is affected?
-
-   Is it a specific query or all queries?
-
-   Did they make any changes to their database schema, application, or query recently?
-
-   When did the issue start?
-
-1) **Check Query Execution**
+- Gather more details from the customer:
+  - What query is affected?
+  - Is it a specific query or all queries?
+  - Did they make any changes to their database schema, application, or query recently?
+  - When did the issue start?
+2) **Check Query Execution**
 - Verify query performance:
-  - Use the EXPLAIN or EXPLAIN ANALYZE command to analyze the query execution plan.
+  - Use the `EXPLAIN` or `EXPLAIN ANALYZE` command to analyze the query execution plan.
   - Identify if there are inefficient operations (e.g., full table scans, missing indexes).
 - Simulate the query:
   - Run the query in the database and measure its execution time.
   - Check if the issue is reproducible.
-1) **Investigate Database Resource Usage**
+3) **Investigate Database Resource Usage**
 - CPU Usage:
-  - Use tools like top or specific monitoring tools to check if the database server is CPU-bound.
+  - Use tools like **top or specific monitoring tools** to check if the database server is **CPU-bound**.
 - Memory Usage:
   - Check if the query is consuming excessive memory.
-  - Use vmstat or specific commands to monitor memory pressure and swapping.
+  - Use `vmstat` or specific commands to monitor **memory pressure and swapping**.
 - I/O Bottleneck:
-  - Use iostat to monitor disk I/O.
+  - Use `iostat` to monitor disk I/O.
   - Check if disk utilization is high or if there is a high I/O wait time.
 - Network Issues:
   - If the database is distributed, check for network latency between nodes.
-  - Use tools like ping or traceroute to analyze network connectivity.
-1) **Database-Specific Check**
+  - Use tools like **ping or traceroute to analyze network connectivity**.
+4) **Database-Specific Check**
 - Lock Contention锁争用:
   - Use SHOW PROCESSLIST (MySQL) or pg\_stat\_activity (PostgreSQL) to check for locked queries or contention.
 - Index Usage:
@@ -684,90 +677,86 @@
   - Verify if table statistics are outdated and update them using ANALYZE or VACUUM.
 - Query Caching:
   - Determine if query caching is enabled and functioning as expected.
-1) **Solution based on Findings**
+5) **Solution based on Findings**
 - Index Optimization: Create or adjust indexes to optimize the query execution plan.
 - Query Optimization: Rewrite the query to reduce complexity (e.g., avoid SELECT \*, use joins effectively).
 - Resource Scaling: Increase server resources like CPU, memory, or IOPS if the workload has grown.
 - Partitioning: Partition large tables to improve query performance for specific ranges.
 - Caching: Use caching mechanisms to reduce the load on the database for frequently accessed data.
-1. #### **网站部分挂掉，排查后端问题？**
+3. #### **网站部分挂掉，排查后端问题？**
 1) **Clarify the Problem Scope** 
-   - What is the behavior of the failure?
-   - Is the entire website down, or are some parts working (e.g., homepage loads, checkout fails)?
-   - Is this affecting all users or a subset (e.g., specific regions or devices)?
-   - When did this start, and were there any recent deployments or configuration changes?
-1) **Start with High-Level Checks** 
-   - Frontend Metrics: Check CDN performance and response time for static assets.
-   - Traffic Metrics: Is traffic normal? Are there sudden drops or spikes?
-   - Infrastructure Metrics: Check CPU, memory, disk, and network usage on servers.
-   - Logs and Alerts: Are there recent error logs or alert notifications?
-1) **Narrow Down to Backend Service (聚焦到后端服务)**
+- What is the behavior of the failure?
+- Is the entire website down, or are some parts working (e.g., homepage loads, checkout fails)?
+- Is this affecting all users or a subset (e.g., specific regions or devices)?
+- When did this start, and were there any recent deployments or configuration changes?
+2) **Start with High-Level Checks** 
+- Frontend Metrics: Check CDN performance and response time for static assets.
+- Traffic Metrics: Is traffic normal? Are there sudden drops or spikes?
+- Infrastructure Metrics: Check CPU, memory, disk, and network usage on servers.
+- Logs and Alerts: Are there recent error logs or alert notifications?
+3) **Narrow Down to Backend Service (聚焦到后端服务)**
 1. **Service Health Check**:
-   1) Use tools like curl or telnet to check if backend services are reachable.
-   1) Verify if the backend services are responding with expected status codes (e.g., 200, 500).
-1. **Service Dependencies**:
+   1) Use tools like `curl` or `telnet` to check if backend services are reachable.
+   2) Verify if the backend services are responding with expected status codes (e.g., 200, 500).
+2. **Service Dependencies**:
    1) Check database connectivity and query performance.
-   1) Verify external API dependencies (e.g., payment gateways).
-1. **Process Health**:
+   2) Verify external API dependencies (e.g., payment gateways).
+3. **Process Health**:
    1) Use ps aux or systemctl status to see if backend processes are running.
-1. **Load Balancer**:
+4. **Load Balancer**:
    1) Check if the load balancer is routing traffic correctly.
-1) **Investigate Backend Service Issues** 
+4) **Investigate Backend Service Issues** 
 1. **Configuration Errors**:
    1) Check for recent changes in backend configuration (e.g., environment variables).
-   1) Use version control tools to compare configurations with the last working state.
-1. **Resource Exhaustion**:
-   1) Use top or htop to check for CPU or memory bottlenecks.
-   1) Restart services if they are consuming excessive resources.
-1. **Database Issues**:
-   1) Use EXPLAIN to analyze slow queries.
-   1) Check database logs for connection or transaction errors.
-1. **Application Bugs**:
+   2) Use version control tools to compare configurations with the last working state.
+2. **Resource Exhaustion**:
+   1) Use `top` or `htop` to check for CPU or memory bottlenecks.
+   2) Restart services if they are consuming excessive resources.
+3. **Database Issues**:
+   1) Use `EXPLAIN` to analyze slow queries.
+   2) Check database logs for connection or transaction errors.
+4. **Application Bugs**:
    1) Look for unhandled exceptions or memory leaks in application logs.
-   1) Roll back to a previous version if the issue is caused by recent code changes.
-1. **Dependency Failures**:
+   2) Roll back to a previous version if the issue is caused by recent code changes.
+5. **Dependency Failures**:
    1) Verify if external services (e.g., payment providers) are functioning.
    1) Add retry or fallback mechanisms for critical dependencies.
-1) **Restore Service and Prevent Future Issues**
+5) **Restore Service and Prevent Future Issues**
 1. **Temporary Fix**:
    1) Restart affected services to temporarily restore functionality.
-   1) Reroute traffic to healthy instances using a load balancer.
-1. **Long-Term Fix**:
+   2) Reroute traffic to healthy instances using a load balancer.
+2. **Long-Term Fix**:
    1) Monitor service metrics more closely (e.g., response time, error rate).
-   1) Implement better alerting to detect issues earlier.
-   1) Conduct root cause analysis and fix underlying problems.
-1. #### **Debug a Linux hosted website？**
-   一个linux电脑在家里run的server来host一个website。半夜突然网页下线了，怎么debug？
-
+   2) Implement better alerting to detect issues earlier.
+   3) Conduct root cause analysis and fix underlying problems.
+4. #### **Debug a Linux hosted website？**
+- 一个linux电脑在家里run的server来host一个website。半夜突然网页下线了，怎么debug？
 - Application Layer: Make sure the website is running without error
-  - Check if the web server is running: systemctl status nginx  # or apache2
-  - Inspect the web server logs for errors: tail -n 50 /var/log/nginx/error.log  # path is demo
-  - Test locally if the web server is serving requests: curl http://localhost
+  - Check if the web server is running: `systemctl status nginx`  # or apache2
+  - Inspect the web server logs for errors: `tail -n 50 /var/log/nginx/error.log`  # path is demo
+  - Test locally if the web server is serving requests: `curl http://localhost`
   - Check for recent deployments or configuration changes: Roll back if necessary.
 - Database Layer: Make sure it can be used as normal
-  - Check if the database service is running: systemctl status mysql  # or postgresql
-  - Test database connectivity: mysql -u root -p -e "SHOW DATABASES;"  # For MySQL
-
-psql -U postgres -c "\l"               # For PostgreSQL
-
-- Inspect database logs for errors: tail -n 50 /var/log/mysql/error.log  # Adjust path as needed
-- Check for slow queries or locks: Enable slow query logs for further analysis.
+  - Check if the database service is running: `systemctl status mysql`  # or postgresql
+  - Test database connectivity: `mysql -u root -p -e "SHOW DATABASES;"`  # For MySQL
+    -  `psql -U postgres -c "\l"`               # For PostgreSQL
+  - Inspect database logs for errors: `tail -n 50 /var/log/mysql/error.log`  # Adjust path as needed
+  - Check for slow queries or locks: Enable slow query logs for further analysis.
 - System Layer
-  - Check CPU and memory usage: top
-  - Look for high I/O wait or disk issues: iostat -x
-  - Verify disk space: df -h
-  - Check for memory leaks or swap usage: vmstat  free -h
-  - Inspect system logs: journalctl -xe  dmesg | tail -n 50 
+  - Check CPU and memory usage: `top`
+  - Look for high I/O wait or disk issues: `iostat -x`
+  - Verify disk space: `df -h`
+  - Check for memory leaks or swap usage: `vmstat`  `free -h`
+  - Inspect system logs: `journalctl -xe`  `dmesg | tail -n 50` 
 - Network Layer
-  - Test network connectivity: ping -c 4 yourwebsite.com  traceroute yourwebsite.com
-  - Check for network errors or dropped packets: netstat -s
-  - Inspect active connections: ss -tuln
-  - Look for potential DDoS attacks:
-    - Identify IPs with excessive requests: sudo netstat -an | grep :80 | sort | uniq -c | sort -nr | head
-    - Block malicious IPs: iptables -A INPUT -s <IP> -j DROP
+  - Test network connectivity: `ping -c 4 yourwebsite.com`  `traceroute yourwebsite.com`
+  - Check for network errors or dropped packets: `netstat -s`
+  - Inspect active connections: `ss -tuln`
+  - Look for potential `DDoS attacks`:
+    - Identify IPs with excessive requests: `sudo netstat -an | grep :80 | sort | uniq -c | sort -nr | head`
+    - Block malicious IPs: `iptables -A INPUT -s <IP> -j DROP`
 
-Improvement and Prevent
-
+- **Improvement and Prevent**
 - Monitoring and Alerts 
   - Use tools like Prometheus, Grafana, or Nagios to monitor resource usage, logs, and service 
   - Set up alerts for critical thresholds.
@@ -780,74 +769,66 @@ Improvement and Prevent
 - **Optimize for High Availability** 
   - Implement load balancing to distribute traffic across multiple servers.
   - Use redundant systems to handle hardware failures.
-1. #### **Help maintain website only with admin and pwd？**
-   Initial Steps (初始步骤)
-
+5. #### **Help maintain website only with admin and pwd？**
 1) **Gather Basic Information:** 
    1) Identify the Website Stack and where are the logs stored? 
-   1) Check Running Services: Use systemctl or ps to see which services are running.
-   1) Confirm Website Functionality:
-1) **Set Up Monitoring and Alerts** 
+   2) Check Running Services: Use systemctl or ps to see which services are running.
+   3) Confirm Website Functionality:
+2) **Set Up Monitoring and Alerts** 
    1) Monitoring Tools: configure monitoring tools like Prometheus + Grafana, Nagios, or Cloudwatch.
-   1) Set Alerts: CPU usage, Memory usage, Disk space, Network traffic
-   1) Log Monitoring: Use tools like logwatch or set up a simple script to watch /var/log.
-1) **Establish Baselines (建立系统基线)**
+   2) Set Alerts: CPU usage, Memory usage, Disk space, Network traffic
+   3) Log Monitoring: Use tools like logwatch or set up a simple script to watch /var/log.
+3) **Establish Baselines (建立系统基线)**
    1) Collect Key Metrics:
-      1. CPU, memory, and disk usage (top, df -h, free).
-      1. Network traffic (iftop or nload).
-   1) Test Application Performance: Load the website and check response times.
-   1) Document Current State: Record the system's normal behavior as a reference.
-
-What to Do Next (后续行动)
-
-1) Plan for Potential Issues (预防潜在问题)
+      1. CPU, memory, and disk usage (`top`, `df -h`, `free`).
+      1. Network traffic (`iftop` or `nload`).
+   2) Test Application Performance: Load the website and check response times.
+   3) Document Current State: Record the system's normal behavior as a reference.
+4) Plan for Potential Issues (预防潜在问题)
    1) Disk Space: Check for large log files and set up log rotation (logrotate).
-   1) Backups: Ensure database and application backups are running.
-   1) High Traffic: Enable rate limiting in NGINX/Apache to handle spikes.
-   1) DDoS Protection: Use a CDN like Cloudflare to mitigate attacks.
-1) Respond to Alerts and Issues (应对警报与问题)
+   2) Backups: Ensure database and application backups are running.
+   3) High Traffic: Enable rate limiting in NGINX/Apache to handle spikes.
+   4) DDoS Protection: Use a CDN like Cloudflare to mitigate attacks.
+5) Respond to Alerts and Issues (应对警报与问题)
    1) Investigate alerts as they occur.
-   1) Prioritize by impact and severity.
-1. #### **帮uncle maintain website？**
-   前情提要：用了ping/traceroute，查了CPU memory都没啥问题。 iostat: high awaits. run some read query:正常。 然后跑了df -h, 发现disk full了, log file把空间占满了,怎么fix？ short term: delete old files. Long term: monitoring, adding disk, periodically deleting, balabala.
-
+   2) Prioritize by impact and severity.
+6. #### **帮uncle maintain website？**
+- 前情提要：用了ping/traceroute，查了CPU memory都没啥问题。 iostat: high awaits. run some read query:正常。 然后跑了df -h, 发现disk full了, log file把空间占满了,怎么fix？ short term: delete old files. Long term: monitoring, adding disk, periodically deleting, balabala.
 - **Initial Diagnosis: Disk Full Due to Log Files** 
   1) Confirm Disk Usage:
-     1. Use df -h to check disk usage.	
-     1. Identify which partition is full.
-  1) **Locate Large Files**: 
-     1. Use du to find large files: du -sh /var/log/\*
-  1) **Confirm Log File Growth**:
+     1. Use `df -h` to check disk usage.	
+     2. Identify which partition is full.
+  2) **Locate Large Files**: 
+     1. Use `du` to find large files: du -sh /var/log/\*
+  3) **Confirm Log File Growth**:
      1. Inspect log files that are consuming space.
-     1. ls -lh /var/log/tail -n 50 /var/log/large-log-file.log
+     2. ls -lh /var/log/tail -n 50 /var/log/large-log-file.log
 - **Short-Term Fixes**
 1) **Free Up Space Immediately** 
    1) Delete old or unnecessary log files: sudo find /var/log -type f -name "\*.log" -mtime +7 -exec rm -f {} \;  (This deletes log files older than 7 days.)
-   1) Compress large log files: gzip /var/log/large-log-file.log
-   1) Clear temporary files: sudo rm -rf /tmp/\*
-   1) Truncate logs if immediate deletion isn’t an option: sudo truncate -s 0 /var/log/large-log-file.log
-1) **Restart Services** 
-   After freeing up space, restart affected services to ensure proper functionality:
-
-   sudo systemctl restart nginx  # or apache2
-
+   2) Compress large log files: gzip /var/log/large-log-file.log
+   3) Clear temporary files: sudo rm -rf /tmp/\*
+   4) Truncate logs if immediate deletion isn’t an option: sudo truncate -s 0 /var/log/large-log-file.log
+2) **Restart Services** 
+- After freeing up space, restart affected services to ensure proper functionality:
+```sudo systemctl restart nginx  # or apache2
    sudo systemctl restart mysql  # or other services
-
+```
 - **Long-Term Solutions** 
 1. **Log Rotation** 
    1) Configure logrotate to manage log files automatically:
       1. Install logrotate if not already installed.
-      1. Create a configuration file for the log directory (e.g., /etc/logrotate.d/myapp).
-1. **Add Storage or Migrate Logs** 
-   1) Add additional disk space or mount a separate partition for logs: sudo mount /dev/sdb1 /var/log
-   1) Forward logs to a centralized logging system (e.g., ELK Stack, Splunk): This reduces pressure on the local disk.
-1. **Proactive Monitoring**
-   1) Set up monitoring tools like Prometheus, Grafana, or Nagios to:
+      2. Create a configuration file for the log directory (e.g., /etc/logrotate.d/myapp).
+2. **Add Storage or Migrate Logs** 
+   1) **Add additional disk space** or mount a separate partition for logs: sudo mount /dev/sdb1 /var/log
+   2) Forward logs to a centralized logging system (e.g., ELK Stack, Splunk): This reduces pressure on the local disk.
+3. **Proactive Monitoring**
+   1) **Set up monitoring tools** like Prometheus, Grafana, or Nagios to:
       1. Track disk usage and alert on thresholds.
-      1. Monitor log file sizes.
-1. **Preventive Measures (预防措施)**
-   1) Set retention policies to delete or archive logs periodically.
-   1) Avoid excessive logging; adjust log levels to only capture necessary information.
+      2. Monitor log file sizes.
+4. **Preventive Measures (预防措施)**
+   1) Set retention policies to **delete or archive logs periodically**.
+   2) Avoid excessive logging; adjust log levels to only capture necessary information.
 
 
 
