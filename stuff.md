@@ -814,7 +814,6 @@
 ```
 sudo systemctl restart nginx  # or apache2
 sudo systemctl restart mysql  # or other services
-
 ```
 - **Long-Term Solutions** 
 1. **Log Rotation** 
