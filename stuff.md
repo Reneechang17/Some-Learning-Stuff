@@ -811,8 +811,10 @@
    4) Truncate logs if immediate deletion isn’t an option: sudo truncate -s 0 /var/log/large-log-file.log
 2) **Restart Services** 
 - After freeing up space, restart affected services to ensure proper functionality:
-```sudo systemctl restart nginx  # or apache2
-   sudo systemctl restart mysql  # or other services
+```
+sudo systemctl restart nginx  # or apache2
+sudo systemctl restart mysql  # or other services
+
 ```
 - **Long-Term Solutions** 
 1. **Log Rotation** 
